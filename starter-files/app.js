@@ -50,7 +50,7 @@ app.use(passport.session());
 // // The flash middleware let's us use req.flash('error', 'Shit!'), which will then pass that message to the next page the user requests
 app.use(flash());
 
-// pass variables to our templates + all requests
+// pass variables to our templates + all requests via #locals
 app.use((req, res, next) => {
   res.locals.h = helpers;
   res.locals.flashes = req.flash();
