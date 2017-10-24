@@ -1,1 +1,1 @@
-#Learning Node with Wes Bos
+Learning Node with Wes Bos
