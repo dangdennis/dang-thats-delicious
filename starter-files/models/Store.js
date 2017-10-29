@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-mongoose.Promise = global.Promise;
 const slug = require('slugs');
+mongoose.Promise = global.Promise;
 
 const storeSchema = new mongoose.Schema({
   name: {
@@ -55,8 +55,10 @@ storeSchema.pre('save', async function(next) {
 
 storeSchema.statics.getTagsList = function() {
   return this.aggregate([
-    // $ means its a field i want to unwind
-    { $unwind: '$tags' }
+    // $ means its a field i wish to 'unwind'
+    { $unwind: '$tags' },
+    { $group: { _id: '$tags', count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
   ]);
 };
 
