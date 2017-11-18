@@ -1,20 +1,18 @@
 const mongoose = require('mongoose');
 const Store = mongoose.model('Store');
+const User = mongoose.model('User');
 const multer = require('multer');
 const jimp = require('jimp');
 const uuid = require('uuid');
-const User = mongoose.model('User');
 
 const multerOptions = {
   storage: multer.memoryStorage(),
   fileFilter(req, file, next) {
     const isPhoto = file.mimetype.startsWith('image/');
     if (isPhoto) {
-      // generally: first value passed into next is err,
-      // second value is the value to be passed along
       next(null, true);
     } else {
-      next({ message: "That filetype isn't allowed!" });
+      next({ message: "That filetype isn't allowed!" }, false);
     }
   }
 };
@@ -31,13 +29,13 @@ exports.upload = multer(multerOptions).single('photo');
 
 exports.resize = async (req, res, next) => {
   // check if there is no new file to resize
-  // multer will add file to request
   if (!req.file) {
     next(); // skip to the next middleware
+    return;
   }
   const extension = req.file.mimetype.split('/')[1];
   req.body.photo = `${uuid.v4()}.${extension}`;
-  // now resize, pass into jump file path or buffer
+  // now we resize
   const photo = await jimp.read(req.file.buffer);
   await photo.resize(800, jimp.AUTO);
   await photo.write(`./public/uploads/${req.body.photo}`);
@@ -66,6 +64,7 @@ const confirmOwner = (store, user) => {
     throw Error('You must own a store in order to edit it!');
   }
 };
+
 exports.editStore = async (req, res) => {
   // 1. Find the store given the ID
   const store = await Store.findOne({ _id: req.params.id });
@@ -93,7 +92,7 @@ exports.updateStore = async (req, res) => {
 
 exports.getStoreBySlug = async (req, res, next) => {
   const store = await Store.findOne({ slug: req.params.slug }).populate(
-    'author'
+    'author reviews'
   );
   if (!store) return next();
   res.render('store', { store, title: store.name });
@@ -102,29 +101,33 @@ exports.getStoreBySlug = async (req, res, next) => {
 exports.getStoresByTag = async (req, res) => {
   const tag = req.params.tag;
   const tagQuery = tag || { $exists: true };
+
   const tagsPromise = Store.getTagsList();
   const storesPromise = Store.find({ tags: tagQuery });
   const [tags, stores] = await Promise.all([tagsPromise, storesPromise]);
-  res.render('tags', { tags, title: 'Tags', tag, stores });
+
+  res.render('tag', { tags, title: 'Tags', tag, stores });
 };
 
-/* API */
 exports.searchStores = async (req, res) => {
-  const stores = await Store.find(
-    {
-      $text: {
-        $search: req.query.q
+  const stores = await Store
+    // first find stores that match
+    .find(
+      {
+        $text: {
+          $search: req.query.q
+        }
+      },
+      {
+        score: { $meta: 'textScore' }
       }
-    },
-    {
-      score: { $meta: 'textScore' }
-    }
-  )
+    )
+    // the sort them
     .sort({
       score: { $meta: 'textScore' }
     })
+    // limit to only 5 results
     .limit(5);
-  // limit to only 5 results
   res.json(stores);
 };
 
@@ -136,8 +139,8 @@ exports.mapStores = async (req, res) => {
         $geometry: {
           type: 'Point',
           coordinates
-        }
-        // $maxDistance: 10000 // 10km
+        },
+        $maxDistance: 10000 // 10km
       }
     }
   };
@@ -167,7 +170,5 @@ exports.getHearts = async (req, res) => {
   const stores = await Store.find({
     _id: { $in: req.user.hearts }
   });
-  res.render('stores', {title: 'Hearted Stores', stores})
+  res.render('stores', { title: 'Hearted Stores', stores });
 };
-
-

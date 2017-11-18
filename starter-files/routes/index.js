@@ -3,6 +3,7 @@ const router = express.Router();
 const storeController = require('../controllers/storeController');
 const userController = require('../controllers/userController');
 const authController = require('../controllers/authController');
+const reviewController = require('../controllers/reviewController');
 const { catchErrors } = require('../handlers/errorHandlers');
 
 router.get('/', catchErrors(storeController.getStores));
@@ -15,6 +16,7 @@ router.post(
   catchErrors(storeController.resize),
   catchErrors(storeController.createStore)
 );
+
 router.post(
   '/add/:id',
   storeController.upload,
@@ -30,11 +32,11 @@ router.get('/tags/:tag', catchErrors(storeController.getStoresByTag));
 
 router.get('/login', userController.loginForm);
 router.post('/login', authController.login);
-router.get('/register', userController.registerForm, userController.register);
+router.get('/register', userController.registerForm);
 
 // 1. Validate the registration data
-// 2. Register the user
-// 3. We need to log them in
+// 2. register the user
+// 3. we need to log them in
 router.post(
   '/register',
   userController.validateRegister,
@@ -54,9 +56,18 @@ router.post(
   catchErrors(authController.update)
 );
 router.get('/map', storeController.mapPage);
-router.get('/hearts', authController.isLoggedIn, catchErrors(storeController.getHearts));
+router.get(
+  '/hearts',
+  authController.isLoggedIn,
+  catchErrors(storeController.getHearts)
+);
+router.post(
+  '/reviews/:id',
+  authController.isLoggedIn,
+  catchErrors(reviewController.addReview)
+);
 
-/* 
+/*
   API
 */
 
