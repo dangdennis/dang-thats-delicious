@@ -1,6 +1,6 @@
 ## What is this?
 
-Just you wait folks!
+Developing a restaurant review application with NodeJS, mongoDB, pug view template.
 
 ## Sample Data
 
